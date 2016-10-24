@@ -21,7 +21,8 @@
             var auth0Settings = context.HttpContext.RequestServices.GetRequiredService<IOptions<Auth0Settings>>();
             var shouldReject = true;
 
-            var expClaim = context.Principal.FindFirst("exp");
+            var expClaim = context.Principal.FindFirst(c => c.Type == "exp" && c.OriginalIssuer == $"https://{auth0Settings.Value.Domain}/");
+
             // Unix timestamp is seconds past epoch
             var validTo = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddSeconds(int.Parse(expClaim.Value));
 
@@ -47,7 +48,7 @@
                     if (!string.IsNullOrWhiteSpace(newIdToken.IdToken))
                     {
                         var newPrincipal = ValidateJwt(newIdToken.IdToken, auth0Settings);
-                        var identity = context.Principal.Identities.First(i => i.FindFirst("exp") != null);
+                        var identity = expClaim.Subject;
                         identity.RemoveClaim(expClaim);
                         identity.AddClaim(newPrincipal.FindFirst("exp"));
 
